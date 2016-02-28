@@ -1,33 +1,64 @@
 #!/usr/bin/env python
 ## Console interface for the GardenGuru
 
-import sys
-import Adafruit_DHT as sensorENV
-import RPi.GPIO as GPIO
 
-sensorenv_pin = 4
+sensor_env_pin = 4
 pump_pin = 23
+twitter_keys_file = 'twKeys'
 
+
+####################################################################################################
+
+import sys
+import datetime
+import time
+import Adafruit_DHT as sensor_env_api
+import RPi.GPIO as GPIO
+import picamera
+from twython import Twython
+import pymongo
+from pymongo import MongoClient
+
+file = open(twitter_keys_file, 'r')
+twCreds = file.readlines()
+twitterApi = Twython(twCreds[0].rstrip(),twCreds[1].rstrip(),twCreds[2].rstrip(),twCreds[3].rstrip()) 
+camera = picamera.PiCamera()
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
+client = MongoClient()
+db = client.planter
+collection = db.env
+
+
+class EST(datetime.tzinfo):
+    def utcoffset(self, dt):
+        return datetime.timedelta(hours=-5)
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+now = datetime.datetime.now(EST())
+datestamp = now.strftime("%m-%d-%Y")
+timestamp = now.strftime("%H:%M:%S")
+
+
 
 def menu_main():       
     print 15 * "-" , "MAIN" , 15 * "-"
     print "1. Check Sensors"
     print "2. Power Cycle the pump"
     print "3. Tweet a Message"
-    print "4. Schedule a Job"
+    print "4. Job Scheduler"
     print "5. Exit Garden Guru"
     print 34 * "-"
 
-def menu_sensor(temp, hum):
+def menu_sensor(hum, temp):
     print
     print 13 * "=" , "SENSORS" , 13 * "="
     print "Temperature: %d F" % temp
     print "Humidity: %d%%" % hum
     print 34 * "." 
     print "1. Update Readings"
-    print "2. Exit to Main Menu"
+    print "2. Main Menu"
     print 34 * "="
     
 def menu_power(state):
@@ -42,63 +73,122 @@ def menu_power(state):
         print "1. Power OFF the Pump"
     else:
         print "Pump state unknown! (%s)" (state)
-    print "2. Exit to Main Menu"
+    print "2. Main Menu"
     print 34 * "="
-  
-loopMain=True      
-  
-while loopMain:          
-    menu_main()   
-    choice = input("Enter your choice [1-5]: ")
+
+   
+def get_env():
+    humidity, temperature = sensor_env_api.read_retry(sensor_env_api.DHT11, sensor_env_pin)
+    temperature = temperature * 9/5.0 + 32    #Convert C to F
+    humidity = 100 - humidity    #Convert dryness to moisture
+    return (humidity, temperature)
+    
+def write_env(hum, temp):
+    record = {"date": datestamp, "timestamp": timestamp, "temperature": temp, "humidity": hum}
+    collection.insert(record)
+
+def publish_tweet(message, pic):
+    if pic == True:
+        camera.capture('current.jpg')
+        photo = open('./current.jpg', 'rb')
+        response = twitterApi.upload_media(media=photo)
+        twitterApi.update_status(status=message, media_ids=[response['media_id']])
+    elif pic == False:
+        twitterApi.update_status(status=message)
+        
+
+
+if sys.argv[1] and sys.argv[2]:
+    function=sys.argv[1]
+    option=sys.argv[2]
+    if function == "sensors":
+        hum, temp = get_env()
+        if option == "print":
+            print "Temperature: %d F" % (temp)
+            print "Humidity: %d%%" % (hum)
+        if option == "hourly_check":
+            message = "%s - It's currently %d F in my garden and the humidity is %d%%." % (timestamp, temp, hum)
+            publish_tweet(message, False)
+            write_env(hum, temp)
+          
+
+        
+else:              
+    
+
+    loopMain=True      
+    while loopMain:          
+        menu_main()   
+        choice = raw_input("Enter your choice [1-5]: ")
      
-    if choice==1:
-        loopSub=True
-        while loopSub: 
-            humidity, temperature = sensorENV.read_retry(sensorENV.DHT11, sensorenv_pin)
-            if humidity is not None and temperature is not None:
-                temperature = temperature * 9/5.0 + 32    #Convert C to F
-                humidity = 100 - humidity    #Convert dryness to moisture
-                menu_sensor(temperature, humidity)	
-                choice_sensor = input("Select an option [1-2]: ")
-	        if choice_sensor==1:
-                    next
-                elif choice_sensor==2:
-	            loopSub=False 
+        if choice=="1":
+            loopSub=True
+            while loopSub: 
+                hum, temp = get_env()
+                if humidity is not None and temperature is not None:
+                    menu_sensor(hum, temp)	
+                    choice_sensor = raw_input("Select an option [1-2]: ")
+	            if choice_sensor=="1":
+                        next
+                    elif choice_sensor=="2":
+	                loopSub=False 
+                    else:
+                        print "Invalid option." 
                 else:
-                    print "Invalid option." 
-            else:
-                print "ERROR: Unable to read sensor."
+                    print "ERROR: Unable to read sensor."
             
 
-    elif choice==2:
-        loopSub=True
-        GPIO.setup(pump_pin, GPIO.OUT)
-        while loopSub:
-            powerState=GPIO.input(pump_pin)
-            menu_power(powerState)
-            choice_power = input("Select an option [1-2]: ")
-            if choice_power==1 and powerState==0:
-                GPIO.output(pump_pin, True)
-                print "Powering the pump ON"
-            elif choice_power==1 and powerState==1:
-                GPIO.output(pump_pin, False)
-                print "Powering the pump OFF"
-            elif choice_power==2:
-                GPIO.cleanup()
-                loopSub=False
-            else:
-                print "Invalid option."
+        elif choice=="2":
+            loopSub=True
+            GPIO.setup(pump_pin, GPIO.OUT)
+            while loopSub:
+                powerState=GPIO.raw_input(pump_pin)
+                menu_power(powerState)
+                choice_power = raw_input("Select an option [1-2]: ")
+                if choice_power=="1" and powerState=="0":
+                    duration = input("How many minutes? [1-30]") 
+                    if not duration < 1 or duration > 30:  
+                        GPIO.output(pump_pin, True)
+                        print "Powering the pump ON for %d minutes" % (duration)
+                        sleep(duration*60)
+                        GPIO.output(pump_pin, False)
+                    else:
+                        print "Invalid option." 
+                elif choice_power=="1" and powerState=="1":
+                    GPIO.output(pump_pin, False)
+                    print "Powering the pump OFF"
+                elif choice_power=="2":
+                    GPIO.cleanup()
+                    loopSub=False
+                else:
+                    print "Invalid option."
 
-    elif choice==3:
-        print "Select your message type"
-        ## You can add your code or functions here
+        elif choice=="3":
+            loopSub=True
+            while loopSub:
+                message = raw_input("Message: ")
+                if len(message) <= 140:
+                    loopSubSub=True
+                    while loopSubSub:
+                        choice_pic = raw_input("Include a picture [y/n]: ")
+                        if choice_pic == "y":
+                            publish_tweet(message, True)
+                            loopSubSub=False
+                        elif choice_pic == "n":
+                            publish_tweet(message, False)
+                            loopSubSub=False
+                        else:
+                            print "Invalid option."
+                    loopSub=False
+                else:
+                    print "Invalid message length."
 
-    elif choice==4:
-	print "Coming soon!"
+        elif choice=="4":
+	    print "Coming soon!"
 
-    elif choice==5:
-        print "Goodbye!"
-        loopMain=False 
+        elif choice=="5":
+            print "Goodbye!"
+            loopMain=False 
 
-    else:
-        print "Invalid option. Enter any key to try again.."
+        else:
+            print "Invalid option. Enter any key to try again.."
