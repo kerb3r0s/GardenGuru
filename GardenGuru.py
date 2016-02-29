@@ -42,8 +42,10 @@ collection = db.env
 #argparse vars
 parser = argparse.ArgumentParser(description='Run GardenGuru from the CLI')
 parser.add_argument("-s", "--sensors", action="store_true", help="Check environment sensor readings")
-parser.add_argument("-t", "--tweet", action="store_true", help="Tweet the results")
-parser.add_argument("-d", "--store", action="store_true", help="Tweet the results")
+parser.add_argument("-t", "--tweet", action="store_true", help="Tweet the sensor results")
+parser.add_argument("-d", "--store", action="store_true", help="Store sensor results in the database")
+parser.add_argument("-m", "--message", action="store_true", help="Send a twitter message as GardenGuru")
+
 args = parser.parse_args()
 
 class EST(datetime.tzinfo):
@@ -104,13 +106,16 @@ def write_env(hum, temp):
     collection.insert(record)
 
 def publish_tweet(message, pic):
-    if pic == True:
-        camera.capture('current.jpg')
-        photo = open('./current.jpg', 'rb')
-        response = twitterApi.upload_media(media=photo)
-        twitterApi.update_status(status=message, media_ids=[response['media_id']])
-    elif pic == False:
-        twitterApi.update_status(status=message)
+    if len(message) <= 140:
+        if pic == True:
+            camera.capture('current.jpg')
+            photo = open('./current.jpg', 'rb')
+            response = twitterApi.upload_media(media=photo)
+            twitterApi.update_status(status=message, media_ids=[response['media_id']])
+        elif pic == False:
+            twitterApi.update_status(status=message)
+	else:
+	    print "Invalid message length."
         
 
 
@@ -123,12 +128,10 @@ if args.sensors:
             publish_tweet(message, False)
 	if args.store:
             write_env(hum, temp)
-          
+    if args.message:
+        publish_tweet(args.message, False)	
 
-        
 else:              
-    
-
     loopMain=True      
     while loopMain:          
         menu_main()   
