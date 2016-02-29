@@ -4,7 +4,8 @@
 
 sensor_env_pin = 4
 pump_pin = 23
-twitter_keys_file = 'twKeys'
+script_home = '/home/oberon/GardenGuru'
+twitter_keys_file = '%s/twKeys' % (script_home)
 
 
 ####################################################################################################
