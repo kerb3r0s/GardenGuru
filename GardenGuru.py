@@ -11,6 +11,7 @@ twitter_keys_file = '%s/twKeys' % (script_home)
 ####################################################################################################
 
 import sys
+import argparse
 import datetime
 import time
 import Adafruit_DHT as sensor_env_api
@@ -20,16 +21,30 @@ from twython import Twython
 import pymongo
 from pymongo import MongoClient
 
+
+#Twython vars
 file = open(twitter_keys_file, 'r')
 twCreds = file.readlines()
-twitterApi = Twython(twCreds[0].rstrip(),twCreds[1].rstrip(),twCreds[2].rstrip(),twCreds[3].rstrip()) 
+twitterApi = Twython(twCreds[0].rstrip(),twCreds[1].rstrip(),twCreds[2].rstrip(),twCreds[3].rstrip())
+
+#piCamera vars 
 camera = picamera.PiCamera()
+
+#GPIO vars
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
+
+#pymongo vars
 client = MongoClient()
 db = client.planter
 collection = db.env
 
+#argparse vars
+parser = argparse.ArgumentParser(description='Run GardenGuru from the CLI')
+parser.add_argument("-s", "--sensors", action="store_true" help="Check environment sensor readings")
+parser.add_argument("-t", "--tweet", action="store_true", help="Tweet the results")
+parser.add_argument("-d", "--store", action="store_true", help="Tweet the results")
+args = parser.parse_args()
 
 class EST(datetime.tzinfo):
     def utcoffset(self, dt):
@@ -99,17 +114,14 @@ def publish_tweet(message, pic):
         
 
 
-if sys.argv[1] and sys.argv[2]:
-    function=sys.argv[1]
-    option=sys.argv[2]
-    if function == "sensors":
+if args.sensors:
         hum, temp = get_env()
-        if option == "print":
-            print "Temperature: %d F" % (temp)
-            print "Humidity: %d%%" % (hum)
-        if option == "hourly_check":
+		print "Temperature: %d F" % (temp)
+        print "Humidity: %d%%" % (hum)
+        if args.tweet:
             message = "%s - It's currently %d F in my garden and the humidity is %d%%." % (timestamp, temp, hum)
             publish_tweet(message, False)
+		if args.store:
             write_env(hum, temp)
           
 
