@@ -41,7 +41,7 @@ collection = db.env
 
 #argparse vars
 parser = argparse.ArgumentParser(description='Run GardenGuru from the CLI')
-parser.add_argument("-s", "--sensors", action="store_true" help="Check environment sensor readings")
+parser.add_argument("-s", "--sensors", action="store_true", help="Check environment sensor readings")
 parser.add_argument("-t", "--tweet", action="store_true", help="Tweet the results")
 parser.add_argument("-d", "--store", action="store_true", help="Tweet the results")
 args = parser.parse_args()
@@ -116,12 +116,12 @@ def publish_tweet(message, pic):
 
 if args.sensors:
         hum, temp = get_env()
-		print "Temperature: %d F" % (temp)
+	print "Temperature: %d F" % (temp)
         print "Humidity: %d%%" % (hum)
         if args.tweet:
             message = "%s - It's currently %d F in my garden and the humidity is %d%%." % (timestamp, temp, hum)
             publish_tweet(message, False)
-		if args.store:
+	if args.store:
             write_env(hum, temp)
           
 
