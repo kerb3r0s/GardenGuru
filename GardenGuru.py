@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ## Console interface for the GardenGuru
 
-
+enable_camera = True
 sensor_env_pin = 4
 pump_pin = 23
 script_home = '/home/oberon/GardenGuru'
@@ -27,8 +27,9 @@ file = open(twitter_keys_file, 'r')
 twCreds = file.readlines()
 twitterApi = Twython(twCreds[0].rstrip(),twCreds[1].rstrip(),twCreds[2].rstrip(),twCreds[3].rstrip())
 
-#piCamera vars 
-camera = picamera.PiCamera()
+#piCamera vars
+if enable_camera = True: 
+    camera = picamera.PiCamera()
 
 #GPIO vars
 GPIO.setmode(GPIO.BCM)
@@ -184,18 +185,19 @@ else:
             while loopSub:
                 message = raw_input("Message: ")
                 if len(message) <= 140:
-                    loopSubSub=True
-                    while loopSubSub:
-                        choice_pic = raw_input("Include a picture [y/n]: ")
-                        if choice_pic == "y":
-                            publish_tweet(message, True)
-                            loopSubSub=False
-                        elif choice_pic == "n":
-                            publish_tweet(message, False)
-                            loopSubSub=False
-                        else:
-                            print "Invalid option."
-                    loopSub=False
+				    if enable_camera = True:
+                        loopSubSub=True
+                        while loopSubSub:
+                            choice_pic = raw_input("Include a picture [y/n]: ")
+                            if choice_pic == "y":
+                                publish_tweet(message, True)
+                                loopSubSub=False
+                            elif choice_pic == "n":
+                                publish_tweet(message, False)
+                                loopSubSub=False
+                            else:
+                                print "Invalid option."
+                        loopSub=False
                 else:
                     print "Invalid message length."
 
