@@ -28,7 +28,7 @@ twCreds = file.readlines()
 twitterApi = Twython(twCreds[0].rstrip(),twCreds[1].rstrip(),twCreds[2].rstrip(),twCreds[3].rstrip())
 
 #piCamera vars
-if enable_camera = True: 
+if enable_camera == True: 
     camera = picamera.PiCamera()
 
 #GPIO vars
@@ -185,7 +185,7 @@ else:
             while loopSub:
                 message = raw_input("Message: ")
                 if len(message) <= 140:
-				    if enable_camera = True:
+		    if enable_camera == True:
                         loopSubSub=True
                         while loopSubSub:
                             choice_pic = raw_input("Include a picture [y/n]: ")
