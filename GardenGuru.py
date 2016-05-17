@@ -15,7 +15,7 @@ import argparse
 import datetime
 import time
 import Adafruit_DHT as sensor_env_api
-import RPi.GPIO as GPIO
+import RPi.GPIO as io
 import picamera
 from twython import Twython
 import pymongo
@@ -32,8 +32,9 @@ if enable_camera == True:
     camera = picamera.PiCamera()
 
 #GPIO vars
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
+io.setmode(io.BCM)
+io.setwarnings(False)
+io.setup(pump_pin, io.OUT)
 
 #pymongo vars
 client = MongoClient()
@@ -117,6 +118,18 @@ def publish_tweet(message, pic):
             twitterApi.update_status(status=message)
 	else:
 	    print "Invalid message length."
+
+def power_cycle(action, duration):
+    if action == "on":
+        io.output(pump_pin, False)
+        print("POWER ON")
+        io.output(pump_pin, True)
+        time.sleep(duration*60);
+        print("POWER OFF")
+        io.output(pump_pin, False)
+    elif action == "off":
+        io.output(pump_pin, False)
+    io.cleanup()
         
 
 
@@ -157,25 +170,22 @@ else:
 
         elif choice=="2":
             loopSub=True
-            GPIO.setup(pump_pin, GPIO.OUT)
             while loopSub:
-                powerState=GPIO.raw_input(pump_pin)
+                powerState=io.raw_input(pump_pin)
                 menu_power(powerState)
                 choice_power = raw_input("Select an option [1-2]: ")
                 if choice_power=="1" and powerState=="0":
                     duration = input("How many minutes? [1-30]") 
-                    if not duration < 1 or duration > 30:  
-                        GPIO.output(pump_pin, True)
+                    if not duration < 1 or duration > 30:
+                        duration = duration*60
+                        power_cycle(on, duration)  
                         print "Powering the pump ON for %d minutes" % (duration)
-                        sleep(duration*60)
-                        GPIO.output(pump_pin, False)
                     else:
-                        print "Invalid option." 
+                        print "Duration must be between 1 and 30." 
                 elif choice_power=="1" and powerState=="1":
-                    GPIO.output(pump_pin, False)
+                    power_cycle(off)
                     print "Powering the pump OFF"
                 elif choice_power=="2":
-                    GPIO.cleanup()
                     loopSub=False
                 else:
                     print "Invalid option."
