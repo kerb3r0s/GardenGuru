@@ -155,7 +155,7 @@ else:
             loopSub=True
             while loopSub: 
                 hum, temp = get_env()
-                if humidity is not None and temperature is not None:
+                if hum is not None and temp is not None:
                     menu_sensor(hum, temp)	
                     choice_sensor = raw_input("Select an option [1-2]: ")
 	            if choice_sensor=="1":
