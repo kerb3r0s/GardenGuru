@@ -127,7 +127,7 @@ def power_cycle(action, duration):
     io.setup(pump_pin, io.OUT)
     if action == "on":
         io.output(pump_pin, False)
-        print("POWER ON")
+        print "Powering the pump ON for %d seconds" % (duration)        
         io.output(pump_pin, True)
         time.sleep(duration);
         print("POWER OFF")
@@ -181,11 +181,10 @@ else:
                 menu_power(powerState)
                 choice_power = raw_input("Select an option [1-2]: ")
                 if choice_power=="1" and powerState==0:
-                    duration = input("How many minutes? [1-30]") 
+                    duration = input("Duration in minutes [1-30]: ") 
                     if not duration < 1 or duration > 30:
                         duration = duration*60
                         power_cycle("on", duration)  
-                        print "Powering the pump ON for %d minutes" % (duration)
                     else:
                         print "Duration must be between 1 and 30." 
                 elif choice_power=="1" and powerState==1:
