@@ -50,12 +50,14 @@ parser.add_argument("-m", "--message", type=str, help="Send a twitter message as
 
 args = parser.parse_args()
 
+#Custom class for converting from UTC to EST
 class EST(datetime.tzinfo):
     def utcoffset(self, dt):
         return datetime.timedelta(hours=-5)
 
     def dst(self, dt):
         return datetime.timedelta(0)
+
 now = datetime.datetime.now(EST())
 datestamp = now.strftime("%m-%d-%Y")
 timestamp = now.strftime("%H:%M:%S")
@@ -124,7 +126,7 @@ def power_cycle(action, duration):
         io.output(pump_pin, False)
         print("POWER ON")
         io.output(pump_pin, True)
-        time.sleep(duration*60);
+        time.sleep(duration);
         print("POWER OFF")
         io.output(pump_pin, False)
     elif action == "off":
@@ -171,10 +173,11 @@ else:
         elif choice=="2":
             loopSub=True
             while loopSub:
-                powerState=io.raw_input(pump_pin)
+                powerState=io.input(pump_pin)
+                print powerState
                 menu_power(powerState)
                 choice_power = raw_input("Select an option [1-2]: ")
-                if choice_power=="1" and powerState=="0":
+                if choice_power=="1" and powerState==False:
                     duration = input("How many minutes? [1-30]") 
                     if not duration < 1 or duration > 30:
                         duration = duration*60
@@ -182,7 +185,7 @@ else:
                         print "Powering the pump ON for %d minutes" % (duration)
                     else:
                         print "Duration must be between 1 and 30." 
-                elif choice_power=="1" and powerState=="1":
+                elif choice_power=="1" and powerState==True:
                     power_cycle(off)
                     print "Powering the pump OFF"
                 elif choice_power=="2":
