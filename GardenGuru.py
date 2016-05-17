@@ -180,12 +180,12 @@ else:
                     duration = input("How many minutes? [1-30]") 
                     if not duration < 1 or duration > 30:
                         duration = duration*60
-                        power_cycle(on, duration)  
+                        power_cycle("on", duration)  
                         print "Powering the pump ON for %d minutes" % (duration)
                     else:
                         print "Duration must be between 1 and 30." 
                 elif choice_power=="1" and powerState==1:
-                    power_cycle(off)
+                    power_cycle("off")
                     print "Powering the pump OFF"
                 elif choice_power=="2":
                     loopSub=False
