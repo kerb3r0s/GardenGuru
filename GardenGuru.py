@@ -32,9 +32,10 @@ if enable_camera == True:
     camera = picamera.PiCamera()
 
 #GPIO vars
-io.setmode(io.BCM)
+io.cleanup()
+#io.setmode(io.BCM)
 io.setwarnings(False)
-io.setup(pump_pin, io.OUT)
+#io.setup(pump_pin, io.OUT)
 
 #pymongo vars
 client = MongoClient()
@@ -122,6 +123,8 @@ def publish_tweet(message, pic):
 	    print "Invalid message length."
 
 def power_cycle(action, duration):
+    io.setmode(io.BCM)
+    io.setup(pump_pin, io.OUT)
     if action == "on":
         io.output(pump_pin, False)
         print("POWER ON")
@@ -173,6 +176,7 @@ else:
         elif choice=="2":
             loopSub=True
             while loopSub:
+                io.setmode(io.BCM)
                 powerState=io.input(pump_pin)
                 menu_power(powerState)
                 choice_power = raw_input("Select an option [1-2]: ")
